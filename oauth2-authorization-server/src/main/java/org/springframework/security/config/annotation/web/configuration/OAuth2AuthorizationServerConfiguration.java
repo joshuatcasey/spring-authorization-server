@@ -15,10 +15,12 @@
  */
 package org.springframework.security.config.annotation.web.configuration;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.WebSecurityConfigurer;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.oauth2.server.authorization.authentication.PrincipalAllowedScopesProviderInterface;
 
 /**
  * {@link Configuration} for OAuth 2.0 Authorization Server support.
@@ -29,9 +31,12 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 @Configuration(proxyBeanMethods = false)
 public class OAuth2AuthorizationServerConfiguration {
 
+	@Autowired
+	PrincipalAllowedScopesProviderInterface principalAllowedScopesProviderInterface;
+
 	@Bean
 	public WebSecurityConfigurer<WebSecurity> defaultOAuth2AuthorizationServerSecurity() {
-		return new OAuth2AuthorizationServerSecurity();
+		return new OAuth2AuthorizationServerSecurity(principalAllowedScopesProviderInterface);
 	}
 
 }

@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientCredentialsAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.PrincipalAllowedScopesProviderInterface;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.web.JwkSetEndpointFilter;
 import org.springframework.security.oauth2.server.authorization.web.OAuth2AuthorizationEndpointFilter;
@@ -75,6 +76,12 @@ public final class OAuth2AuthorizationServerConfigurer<B extends HttpSecurityBui
 			OAuth2TokenEndpointFilter.DEFAULT_TOKEN_ENDPOINT_URI, HttpMethod.POST.name());
 	private final RequestMatcher jwkSetEndpointMatcher = new AntPathRequestMatcher(
 			JwkSetEndpointFilter.DEFAULT_JWK_SET_ENDPOINT_URI, HttpMethod.GET.name());
+	private final PrincipalAllowedScopesProviderInterface principalAllowedScopesProviderInterface;
+
+	public OAuth2AuthorizationServerConfigurer(
+			PrincipalAllowedScopesProviderInterface principalAllowedScopesProviderInterface) {
+		this.principalAllowedScopesProviderInterface = principalAllowedScopesProviderInterface;
+	}
 
 	/**
 	 * Sets the repository of registered clients.
@@ -167,7 +174,7 @@ public final class OAuth2AuthorizationServerConfigurer<B extends HttpSecurityBui
 		OAuth2AuthorizationEndpointFilter authorizationEndpointFilter =
 				new OAuth2AuthorizationEndpointFilter(
 						getRegisteredClientRepository(builder),
-						getAuthorizationService(builder));
+						getAuthorizationService(builder), principalAllowedScopesProviderInterface);
 		builder.addFilterBefore(postProcess(authorizationEndpointFilter), AbstractPreAuthenticatedProcessingFilter.class);
 
 		OAuth2TokenEndpointFilter tokenEndpointFilter =

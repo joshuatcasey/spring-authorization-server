@@ -15,6 +15,7 @@
  */
 package org.springframework.security.oauth2.server.authorization.web;
 
+import java.util.Collections;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,7 +80,7 @@ public class OAuth2AuthorizationEndpointFilterTests {
 	public void setUp() {
 		this.registeredClientRepository = mock(RegisteredClientRepository.class);
 		this.authorizationService = mock(OAuth2AuthorizationService.class);
-		this.filter = new OAuth2AuthorizationEndpointFilter(this.registeredClientRepository, this.authorizationService);
+		this.filter = new OAuth2AuthorizationEndpointFilter(this.registeredClientRepository, this.authorizationService,  (Object principal) -> Collections.emptySet());
 		this.authentication = new TestingAuthenticationToken("principalName", "password");
 		this.authentication.setAuthenticated(true);
 		SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
@@ -94,21 +95,21 @@ public class OAuth2AuthorizationEndpointFilterTests {
 
 	@Test
 	public void constructorWhenRegisteredClientRepositoryNullThenThrowIllegalArgumentException() {
-		assertThatThrownBy(() -> new OAuth2AuthorizationEndpointFilter(null, this.authorizationService))
+		assertThatThrownBy(() -> new OAuth2AuthorizationEndpointFilter(null, this.authorizationService, (Object principal) -> Collections.emptySet()))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessage("registeredClientRepository cannot be null");
 	}
 
 	@Test
 	public void constructorWhenAuthorizationServiceNullThenThrowIllegalArgumentException() {
-		assertThatThrownBy(() -> new OAuth2AuthorizationEndpointFilter(this.registeredClientRepository, null))
+		assertThatThrownBy(() -> new OAuth2AuthorizationEndpointFilter(this.registeredClientRepository, null, (Object principal) -> Collections.emptySet()))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessage("authorizationService cannot be null");
 	}
 
 	@Test
 	public void constructorWhenAuthorizationEndpointUriNullThenThrowIllegalArgumentException() {
-		assertThatThrownBy(() -> new OAuth2AuthorizationEndpointFilter(this.registeredClientRepository, this.authorizationService, null))
+		assertThatThrownBy(() -> new OAuth2AuthorizationEndpointFilter(this.registeredClientRepository, this.authorizationService, null, null))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessage("authorizationEndpointUri cannot be empty");
 	}

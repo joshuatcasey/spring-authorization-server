@@ -34,6 +34,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationAttributeNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.TokenType;
+import org.springframework.security.oauth2.server.authorization.authentication.PrincipalAllowedScopesProviderInterface;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2AuthorizationCode;
@@ -94,6 +95,7 @@ public class OAuth2AuthorizationEndpointFilter extends OncePerRequestFilter {
 	private final StringKeyGenerator codeGenerator = new Base64StringKeyGenerator(Base64.getUrlEncoder().withoutPadding(), 96);
 	private final StringKeyGenerator stateGenerator = new Base64StringKeyGenerator(Base64.getUrlEncoder());
 	private final RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
+	private final PrincipalAllowedScopesProviderInterface principalAllowedScopesProviderInterface;
 
 	/**
 	 * Constructs an {@code OAuth2AuthorizationEndpointFilter} using the provided parameters.
@@ -102,8 +104,9 @@ public class OAuth2AuthorizationEndpointFilter extends OncePerRequestFilter {
 	 * @param authorizationService the authorization service
 	 */
 	public OAuth2AuthorizationEndpointFilter(RegisteredClientRepository registeredClientRepository,
-			OAuth2AuthorizationService authorizationService) {
-		this(registeredClientRepository, authorizationService, DEFAULT_AUTHORIZATION_ENDPOINT_URI);
+			OAuth2AuthorizationService authorizationService,
+			PrincipalAllowedScopesProviderInterface principalAllowedScopesProviderInterface) {
+		this(registeredClientRepository, authorizationService, DEFAULT_AUTHORIZATION_ENDPOINT_URI, principalAllowedScopesProviderInterface);
 	}
 
 	/**
@@ -114,7 +117,8 @@ public class OAuth2AuthorizationEndpointFilter extends OncePerRequestFilter {
 	 * @param authorizationEndpointUri the endpoint {@code URI} for authorization requests
 	 */
 	public OAuth2AuthorizationEndpointFilter(RegisteredClientRepository registeredClientRepository,
-			OAuth2AuthorizationService authorizationService, String authorizationEndpointUri) {
+			OAuth2AuthorizationService authorizationService, String authorizationEndpointUri,
+			PrincipalAllowedScopesProviderInterface principalAllowedScopesProviderInterface) {
 		Assert.notNull(registeredClientRepository, "registeredClientRepository cannot be null");
 		Assert.notNull(authorizationService, "authorizationService cannot be null");
 		Assert.hasText(authorizationEndpointUri, "authorizationEndpointUri cannot be empty");
@@ -124,6 +128,7 @@ public class OAuth2AuthorizationEndpointFilter extends OncePerRequestFilter {
 				authorizationEndpointUri, HttpMethod.GET.name());
 		this.userConsentMatcher = new AntPathRequestMatcher(
 				authorizationEndpointUri, HttpMethod.POST.name());
+		this.principalAllowedScopesProviderInterface = principalAllowedScopesProviderInterface;
 	}
 
 	@Override
@@ -311,7 +316,20 @@ public class OAuth2AuthorizationEndpointFilter extends OncePerRequestFilter {
 		// scope (OPTIONAL)
 		Set<String> requestedScopes = authorizationRequestContext.getScopes();
 		Set<String> allowedScopes = registeredClient.getScopes();
+
+		final Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+		Set<String> userGroups = this.principalAllowedScopesProviderInterface.getAllowedScopesForPrincipal(
+				principal);
+
+		//Set<String> userGroups = ((DefaultSaml2AuthenticatedPrincipal)).getAttribute("snack-groups");
+
 		if (!requestedScopes.isEmpty() && !allowedScopes.containsAll(requestedScopes)) {
+			authorizationRequestContext.setError(
+					createError(OAuth2ErrorCodes.INVALID_SCOPE, OAuth2ParameterNames.SCOPE));
+			return;
+		}
+
+		if (!requestedScopes.isEmpty() && !userGroups.containsAll(requestedScopes)) {
 			authorizationRequestContext.setError(
 					createError(OAuth2ErrorCodes.INVALID_SCOPE, OAuth2ParameterNames.SCOPE));
 			return;

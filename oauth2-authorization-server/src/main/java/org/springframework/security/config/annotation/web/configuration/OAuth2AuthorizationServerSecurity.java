@@ -19,6 +19,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.authentication.PrincipalAllowedScopesProviderInterface;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
@@ -33,15 +34,23 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class OAuth2AuthorizationServerSecurity extends WebSecurityConfigurerAdapter {
 
+	private final PrincipalAllowedScopesProviderInterface principalAllowedScopesProviderInterface;
+
+	public OAuth2AuthorizationServerSecurity(
+			PrincipalAllowedScopesProviderInterface principalAllowedScopesProviderInterface) {
+
+		this.principalAllowedScopesProviderInterface = principalAllowedScopesProviderInterface;
+	}
+
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		applyDefaultConfiguration(http);
 	}
 
 	// @formatter:off
-	public static void applyDefaultConfiguration(HttpSecurity http) throws Exception {
+	public void applyDefaultConfiguration(HttpSecurity http) throws Exception {
 		OAuth2AuthorizationServerConfigurer<HttpSecurity> authorizationServerConfigurer =
-				new OAuth2AuthorizationServerConfigurer<>();
+				new OAuth2AuthorizationServerConfigurer<>(principalAllowedScopesProviderInterface);
 		RequestMatcher[] endpointMatchers = authorizationServerConfigurer
 				.getEndpointMatchers().toArray(new RequestMatcher[0]);
 
